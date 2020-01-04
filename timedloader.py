@@ -51,9 +51,11 @@ def download(
         interval: int,
         basedestination: str,
         diffcheck: DiffCheckType,
-        starttime: Optional[time.time] = None,
-        endtime: Optional[time.time] = None
+        ephemerid: Optional[Ephemerid] = None
 ):
+    starttime = datetime.time(hour=0, minute=0, second=0)
+    endtime = datetime.time(hour=23, minute=59, second=59)
+
     o = urlparse(url)
     loc, auth = parsenetloc(o.netloc)
     if o.scheme.startswith("https"):
@@ -70,6 +72,11 @@ def download(
         while True:
             md5hash = hashlib.md5()
             write_file = False
+
+            if ephemerid:
+                starttime = ephemerid.sunrise()
+                endtime = ephemerid.sunset()
+
             dl_start = time.time()
             if starttime < datetime.datetime.now().time() < endtime:
                 destination = os.path.join(basedestination, foldername())
@@ -122,6 +129,7 @@ def download(
                     logging.debug("sleep til midnight " + str(sleep_time))
                 else:
                     sleep_time = time2dayseconds(starttime) - time2dayseconds(now.time())
+                    logging.debug("Downloading between {s} and {e}".format(s=starttime, e=endtime))
                     logging.debug("sleeping for {s} seconds".format(s=sleep_time))
                 time.sleep(sleep_time)
     finally:
@@ -154,23 +162,17 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    starttime = datetime.time(hour=0, minute=0, second=0)
-    endtime = datetime.time(hour=23, minute=59, second=59)
+    ephemerid: Optional[Ephemerid] = None
     if args.daytime:
         lat, long = args.pos.split(',')
-        s = Ephemerid(lat=float(lat), long=float(long))
-
-        starttime = s.sunrise()
-        endtime = s.sunset()
-        logging.debug("Downloading between {s} and {e}".format(s=starttime, e=endtime))
+        ephemerid = Ephemerid(lat=float(lat), long=float(long))
 
     download(
         args.url,
         args.interval,
         args.destination,
         DiffCheckType(args.diffcheck),
-        starttime=starttime,
-        endtime=endtime
+        ephemerid=ephemerid
     )
 
 
