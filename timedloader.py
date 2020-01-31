@@ -67,9 +67,10 @@ def download(
     if auth:
         userandpass = b64encode(auth.encode()).decode('ascii')
         headers = {'Authorization': 'Basic {encpass}'.format(encpass=userandpass)}
-    try:
-        lasttag = None
-        while True:
+
+    lasttag = None
+    while True:
+        try:
             md5hash = hashlib.md5()
             write_file = False
 
@@ -132,8 +133,11 @@ def download(
                     logging.debug("Downloading between {s} and {e}".format(s=starttime, e=endtime))
                     logging.debug("sleeping for {s} seconds".format(s=sleep_time))
                 time.sleep(sleep_time)
-    finally:
-        h.close()
+        except OSError as oe:
+            print(oe)
+            time.sleep(sleep_time)
+        finally:
+            h.close()
 
 
 def dt_from_time(t: datetime.time) -> datetime.datetime:
